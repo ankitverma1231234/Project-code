@@ -1,0 +1,38 @@
+Public class monthly_newsletter implements database.Batchable<sobject> {
+    // Execute start method
+    public database.QueryLocator start(database.BatchableContext bc){
+        String query = 'select id ,Name, email,JPC_monthly_newsletter_subscription__c from contact where JPC_monthly_newsletter_subscription__c=true ';
+        return database.getQueryLocator(query);
+    }
+    
+    // Execute method
+    Public void execute(database.BatchableContext bc,list<contact> scope){
+        // List for sending email for each contact
+        List<Messaging.SingleEmailMessage> emailList = new List<Messaging.SingleEmailMessage>();
+        // create a list for query newsletter
+        List<Newsletter__c> newsletters = [
+            SELECT Id, Name, Newsletter_body2__c, Active__c
+            FROM Newsletter__c
+            WHERE Active__c = true];
+        
+        
+        for (Contact cc : scope) {
+            for (Newsletter__c newsletter : newsletters) {
+                if (!String.isBlank(newsletter.Newsletter_body2__c)) {
+                    Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
+                    email.setSubject(newsletter.Name);
+                    email.setToAddresses(new String[] { cc.Email });
+                    email.setHtmlBody(newsletter.Newsletter_body2__c);
+                    emailList.add(email);
+                }
+            }
+        }
+        
+        Messaging.sendEmail(emailList);
+    }
+    
+    // Execute finish method 
+    public void finish(database.BatchableContext bc){
+        system.debug('batch progress is completed');
+    }
+}
